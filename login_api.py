@@ -43,7 +43,7 @@ def get_idp_provider(username):
             idp_config: IdpDomainConfig = \
                 IdpDomainConfig.objects(domain=domain)
             # new_idp = IdpDomainConfig()
-            # new_idp.domain = "dws.local"
+            # new_idp.domain = "ad.local"
             # new_idp.created = datetime.utcnow()
             # new_idp.updated = datetime.utcnow()
             # new_idp.idp_system_config = IdpSystemConfig()
