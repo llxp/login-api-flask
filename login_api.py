@@ -35,23 +35,29 @@ def init_app(app):
 # os.getenv('AUTHENTICATION_API_HOST', 'http://192.168.6.1:8083')
 
 
-def get_idp_provider(username):
+def get_domain(username):
     if '@' in username:
         domain = username.split('@')
         if len(domain) == 2:
-            domain = domain[1]
-            idp_config: IdpDomainConfig = \
-                IdpDomainConfig.objects(domain=domain)
-            # new_idp = IdpDomainConfig()
-            # new_idp.domain = "ad.local"
-            # new_idp.created = datetime.utcnow()
-            # new_idp.updated = datetime.utcnow()
-            # new_idp.idp_system_config = IdpSystemConfig()
-            # new_idp.idp_system_config.login_endpoint = "http://127.0.0.1:5002/api/login"
-            # new_idp.idp_system_config.user_information_endpoint = "http://127.0.0.1:5002/api/get_user_groups"
-            # new_idp.idp_system_config.translate_users_endpoint = "http://127.0.0.1:5002/api/translate_users"
-            # new_idp.save()
-            return idp_config
+            return domain[1]
+    return None
+
+
+def get_idp_provider(username):
+    domain = get_domain(username)
+    if domain:
+        idp_config: IdpDomainConfig = \
+            IdpDomainConfig.objects(domain=domain)
+        # new_idp = IdpDomainConfig()
+        # new_idp.domain = "ad.local"
+        # new_idp.created = datetime.utcnow()
+        # new_idp.updated = datetime.utcnow()
+        # new_idp.idp_system_config = IdpSystemConfig()
+        # new_idp.idp_system_config.login_endpoint = "http://127.0.0.1:5002/api/login"
+        # new_idp.idp_system_config.user_information_endpoint = "http://127.0.0.1:5002/api/get_user_groups"
+        # new_idp.idp_system_config.translate_users_endpoint = "http://127.0.0.1:5002/api/translate_users"
+        # new_idp.save()
+        return idp_config
     return []
 
 
@@ -378,12 +384,14 @@ def translate_users():
     return jsonify('json body is missing'), 400
 
 
-def get_role_config() -> List[RoleConfig]:
-    return RoleConfig.objects(enabled=True)
+def get_role_config(domain: str) -> List[RoleConfig]:
+    if domain:
+        return RoleConfig.objects(enabled=True, domain=domain)
+    return []
 
 
 def roles_by_user_groups(user: str, groups: List[str]) -> List[Roles]:
-    role_configs = get_role_config()
+    role_configs = get_role_config(get_domain(user))
     roles: list[str] = []
     if user and groups:
         for role_config in role_configs:
