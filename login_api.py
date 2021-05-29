@@ -151,6 +151,8 @@ def roles_required(roles=[]):
             if 'Authorization' in request.headers:
                 token = get_token()
                 token_is_valid = check_session_token(token)
+                #print(token_is_valid, file=sys.stderr)
+                #print(token, file=sys.stderr)
                 if token_is_valid:
                     credentials = get_credentials_from_token(token)
                     if credentials:
@@ -158,7 +160,8 @@ def roles_required(roles=[]):
                             user_information_by_credentials(credentials)
                         groups = user_information.groups
                         user = user_information.username
-                        roles_found = roles_by_user_groups(user, groups)
+                        roles_found = roles_by_user_groups(user, groups, get_domain(credentials['username']))
+                        #print(roles_found, file=sys.stderr)
                         for role in roles:
                             if role in roles_found:
                                 var_names = function.__code__.co_varnames
@@ -238,6 +241,7 @@ def get_user_information_by_username_password(
             data=json.dumps({'username': username, 'password': password}),
             headers=headers
         )
+        #print(authentication_response.content, file=sys.stderr)
         if authentication_response.status_code == 200:
             response = authentication_response.json()
             keys = UserInformation.__dataclass_fields__
@@ -250,6 +254,7 @@ def check_session_token(token: str):
     try:
         key = current_app.config['SECRET_KEY']
         decoded_jwt = jwt.decode(jwt=token, key=key)
+        #print(decoded_jwt, file=sys.stderr)
         if 'username' in decoded_jwt and 'exp' in decoded_jwt:
             # check, if jwt token is still valid
             expiration_date = decoded_jwt['exp']
@@ -265,7 +270,7 @@ def check_session_token(token: str):
         ImmatureSignatureError,
         ExpiredSignatureError
     ):
-        # traceback.print_exc(file=sys.stdout)
+        traceback.print_exc(file=sys.stderr)
         return False
     return False
 
@@ -306,6 +311,7 @@ def login():
                             },
                             key=current_app.config['SECRET_KEY']
                         )
+                        #print(token, file=sys.stderr)
                         return jsonify(token.decode('utf-8'))
             return jsonify('authentication failed'), 403
             # return jsonify('authentication api host is empty'), 500
@@ -386,14 +392,18 @@ def translate_users():
 
 def get_role_config(domain: str) -> List[RoleConfig]:
     if domain:
+        #print(domain, file=sys.stderr)
         return RoleConfig.objects(enabled=True, domain=domain)
     return []
 
 
-def roles_by_user_groups(user: str, groups: List[str]) -> List[Roles]:
-    role_configs = get_role_config(get_domain(user))
+def roles_by_user_groups(user: str, groups: List[str], domain: str) -> List[Roles]:
+    role_configs = get_role_config(domain)
     roles: list[str] = []
     if user and groups:
+        #print(user, file=sys.stderr)
+        #print(groups, file=sys.stderr)
+        #print(role_configs, file=sys.stderr)
         for role_config in role_configs:
             for auth_config in role_config.auth_config:
                 if str(auth_config.auth_type) == str(AuthType.GROUP):
@@ -405,16 +415,17 @@ def roles_by_user_groups(user: str, groups: List[str]) -> List[Roles]:
     return roles
 
 
-@app.route('/roles', methods=['GET'])
-@cross_origin(supports_credentials=True)
-@roles_required(roles=['USER'])
-def roles(user_information: UserInformation):
-    groups = user_information.groups
-    user = user_information.user_uid
-    roles = roles_by_user_groups(user, groups)
-    if roles and len(roles) > 0:
-        return jsonify(roles), 200
-    return jsonify([]), 404
+#@app.route('/roles', methods=['GET'])
+#@cross_origin(supports_credentials=True)
+#@roles_required(roles=['USER'])
+#def roles(user_information: UserInformation):
+#    groups = user_information.groups
+#    user = user_information.user_uid
+#    username = user_information.username
+#    roles = roles_by_user_groups(username, groups)
+#    if roles and len(roles) > 0:
+#        return jsonify(roles), 200
+#    return jsonify([]), 404
 
 
 @app.route('/user_profile', methods=['GET'])
