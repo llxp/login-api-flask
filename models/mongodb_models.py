@@ -36,5 +36,6 @@ class RoleConfig(db.Document):
     updated = db.DateTimeField()
     auth_config: List[AuthConfig] = db.EmbeddedDocumentListField(AuthConfig)
     role: Roles = db.StringField()
+    domain: str = db.StringField()
     # get all user groups from idp, then filter this table for auth_config
     # and then grant specified role to the user
